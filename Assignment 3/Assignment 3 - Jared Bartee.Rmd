@@ -1,0 +1,124 @@
+---
+title: "Assignment 3"
+author: "Jared Bartee"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+library("dplyr")
+library("tidyr")
+library("ggplot2")
+library("ROCR")
+library("rpart")
+library("rpart.plot")
+library("caret")
+library("randomForest")
+library("tidyverse")
+library("tm")
+library("SnowballC")
+library("softImpute")
+library("glmnet")
+library("Hmisc")
+library("dummy")
+library('tinytex')
+library('GGally')
+library('gplots')
+library('FNN')
+library("dplyr")
+library("tidyr")
+library("caTools")
+library("ggpubr")
+library("reshape2")
+library("e1071")
+```
+
+
+```{r}
+bank = read.csv("UniversalBank.csv")
+summary(bank)
+```
+```{r}
+bank$Personal.Loan = as.factor(bank$Personal.Loan)
+bank$Online = as.factor(bank$Online)
+bank$CreditCard = as.factor(bank$CreditCard)
+set.seed(1)
+train.index <- sample(row.names(bank), 0.6*dim(bank)[1])
+test.index <- setdiff(row.names(bank), train.index)
+train.df <- bank[train.index, ]
+test.df <- bank[test.index, ]
+train <- bank[train.index, ]
+test = bank[train.index,]
+```
+
+
+#A Create a pivot table for the training data with Online as a column variable, CC as a row variable, and Loan as a secondary row variable. The values inside the table should convey the count. In R use functions melt() and cast(), or function table(). In Python, use panda dataframe methods melt() and pivot().
+```{r}
+melted.bank = melt(train,id=c("CreditCard","Personal.Loan"),variable= "Online")
+recast.bank=dcast(melted.bank,CreditCard+Personal.Loan~Online)
+recast.bank[,c(1:2,14)]
+```
+
+#B  Consider the task of classifying a customer who owns a bank credit card and is actively using online banking services. Looking at the pivot table, what is the probability that this customer will accept the loan offer? [This is the probability of loan acceptance (Loan = 1) conditional on having a bank credit card (CC = 1) and being an active user of online banking services (Online = 1)].
+
+Answer: Probability of Loan acceptance give having a bank credit card and user of online services is 77/3000 = 2.6%
+
+#C  Create two separate pivot tables for the training data. One will have Loan (rows) as a function of Online (columns) and the other will have Loan (rows) as a function of CC.
+```{r}
+melted.bankc1 = melt(train,id=c("Personal.Loan"),variable = "Online")
+```
+
+```{r}
+melted.bankc2 = melt(train,id=c("CreditCard"),variable = "Online")
+```
+
+```{r}
+recast.bankc1=dcast(melted.bankc1,Personal.Loan~Online)
+recast.bankc2=dcast(melted.bankc2,CreditCard~Online)
+Loanline=recast.bankc1[,c(1,13)]
+LoanCC=recast.bankc2[,c(1,14)]
+
+Loanline
+```
+```{r}
+LoanCC
+```
+#D Compute the following quantities [P(A | B) means “the probability ofA given B”]: i. P(CC = 1 | Loan = 1) (the proportion of credit card holders among the loan acceptors);ii. P(Online = 1 | Loan = 1);iii. P(Loan = 1) (the proportion of loan acceptors);iv. P(CC = 1 | Loan = 0);v. P(Online = 1 | Loan = 0);vi. P(Loan = 0)
+```{r}
+table(train[,c(14,10)])
+```
+```{r}
+table(train[,c(13,10)])
+```
+```{r}
+table(train[,c(10)])
+```
+Answers:
+i. 77/(77+198)= 28%
+ii. 166/166+109)= 60.3%
+iii. 275/(275+2725)= 9.2%
+iv. 801/(801+1924)= 29.4%
+v. 1588/(1588+1137)= 58.3%
+vi. 2725/(2725+275)= 90.8%
+
+#E Use the quantities computed above to compute the naive Bayes probability P(Loan = 1 | CC = 1, Online = 1).
+```{r}
+((77/(77+198))*(166/(166+109))*(275/(275+2725)))/(((77/(77+198))*(166/(166+109))*(275/(275+2725)))+((801/(801+1924))*(1588/(1588+1137))*2725/(2725+275)))
+```
+#F Compare this value with the one obtained from the pivot table in (B). Which is a more accurate estimate?
+
+Answer: 9.05% is very similar to the 9.7% the difference between the exact method and the naive-baize method is the exact method would need the exact same independent variable classifications to predict, whereas the naive Bayes method does not.
+
+#G Which of the entries in this table are needed for computing P(Loan = 1 | CC = 1, Online = 1)? Run naive Bayes on the data. Examine the model output on training data, and find the entry that corresponds to P(Loan = 1 | CC = 1, Online = 1). Compare this to the number you obtained in (E).
+```{r}
+naive.train = train.df[,c(10,13:14)]
+naive.test = test.df[,c(10,13:14)]
+naivebayes = naiveBayes(Personal.Loan~.,data=naive.train)
+naivebayes
+```
+Answer: The naive Bayes is the exact same output we received in the previous methods. (.280)(.603)(.09)/(.280.603.09+.29.58.908) = .09 which is the same response provided as above.
+
+
+
