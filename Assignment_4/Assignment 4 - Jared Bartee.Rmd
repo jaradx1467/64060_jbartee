@@ -1,0 +1,67 @@
+---
+title: "Assignment 4"
+author: "Jared Bartee"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+---
+
+# Load data source and create dataframe
+```{r}
+Pharm <- read.csv("Pharmaceuticals.csv")
+head(Pharm)
+```
+#Collect the quantitative variables (1-9) to cluster the 21 firms
+```{r}
+Pharm1 <- Pharm[,3:11]
+head(Pharm1)
+```
+#Scale all quantitative variables in the dataframe
+```{r}
+PharmS <- scale(Pharm1)
+head(PharmS)
+```
+#K-Means Cluster Analysis - Fit the data with 5 clusters
+```{r}
+fit <- kmeans(PharmS,5)
+```
+
+#Below command gives the mean value of all quantitative variables for each cluster
+```{r}
+aggregate(PharmS, by = list(fit$cluster), FUN = mean)
+```
+```{r}
+PharmS1 <- data.frame(PharmS, fit$cluster)
+PharmS1
+```
+```{r}
+library(cluster)
+clusplot(PharmS, fit$cluster, color = TRUE, shade = TRUE, labels = 2, lines = 0)
+```
+#Answers
+
+(B)
+Cluster 1: Rows 1, 3, 4, 5, 19, 20
+Cluster 2: Rows 2, 6, 18
+Cluster 3: Rows 11, 13, 15, 17
+Cluster 4: Rows 7, 10, 16, 21
+Cluster 5: Rows 8, 9, 12, 14
+By the output of the mean value of all quantitative variables for each cluster, we see that Cluster 1 has the lowest Leverage; Cluster 2 has the highest PE ratio, lowest ROE, lowest ROA, lowest Asset Turnover, & lowest Net Profit Margin; Cluster 3 has the highest Market Cap, highest ROE, highest ROA, & highest Asset Turnover; Cluster 4 has the highest Net Profit Margin, lowest Beta, lowest PE Ratio, & lowest Rev growth; Cluster 5 has the highest Beta, highest Leverage, highest Rev Growth, & lowest Market Cap.
+
+(C)
+There appears to be a patternin the clusters regarding the Media recommendation variable. Cluster 3 does not have any sell media recommendation, this cluster is mostly buy recommendation with one strong buy recommendation. Cluster 2 has mostly hold recommendation. While Cluster 4 also has mostly hold recommendation.
+
+(D)
+Cluster 1: Lowest Leverage Cluster
+Cluster 2: High PE Ratio, Low ROE, ROA, Asset Turnover, Net Profit Margin Cluster
+Cluster 3: High Market Cap, ROE, ROA, Asset Turnover Cluster
+Cluster 4: High Net Profit Margin, Low Beta, PE Ratio, Rev Growth Cluster
+Cluster 5: High Beta, Leverage, Rev Growth and Low Market Cap Cluster
+
+
+
+
+
+
+
