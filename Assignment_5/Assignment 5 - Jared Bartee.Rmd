@@ -1,0 +1,162 @@
+---
+title: 'Assignment 5: Hierarchical Clustering'
+author: "Jared Bartee"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+---
+# Step 1: Data Preprocessing
+# Load the data
+```{r}
+cereals_data <- read.csv("Cereals.csv")
+head(cereals_data)
+```
+# Drop mfr & type columns
+```{r}
+cereals_data <- cereals_data[-c(2,3)]
+cereals_data
+```
+# Convert the names of breakfast cereals to row names
+```{r}
+rownames(cereals_data) <- cereals_data$name
+```
+#Drop the name column
+```{r}
+cereals_data <- cereals_data[-c(1)]
+cereals_data
+```
+# Find the amount of missing values and then omit them
+```{r}
+sum(is.na(cereals_data))
+```
+
+```{r}
+cereals_data <- na.omit(cereals_data)
+sum(is.na(cereals_data))
+```
+
+# Step 2: Hierarchical Clustering
+# Normalize the data
+```{r}
+normalized_cereals <- scale(cereals_data[, -1])
+```
+
+# Use the Euclidean distance measure
+```{r}
+cereals_euclidean <- dist(normalized_cereals, method = "euclidean")
+plot(cereals_euclidean)
+```
+```{r}
+CC1 <- hclust(cereals_euclidean)
+plot(CC1, cex = 0.5, hang = -1)
+```
+# Use Agnes
+```{r}
+library(cluster)
+library(stats)
+Cereal_Single <- agnes(normalized_cereals, method = "single")
+Cereal_Complete <- agnes(normalized_cereals, method = "complete")
+Cereal_average <- agnes(normalized_cereals, method = "average")
+Cereal_Ward <- agnes(normalized_cereals, method = "ward")
+```
+
+```{r}
+print(Cereal_Single$ac)
+```
+
+```{r}
+print(Cereal_Complete$ac)
+```
+
+```{r}
+print(Cereal_average$ac)
+```
+# Ward appears to be the best method
+```{r}
+print(Cereal_Ward$ac)
+```
+
+# Apply hierarchical clustering with Ward's method & Visualize for Ward's method
+```{r, fig.height=8, fig.width=14}
+pltree(Cereal_Ward,main = "Dendrogram of agnes: Ward")
+```
+```{r, fig.height=8, fig.width=14}
+plot(Cereal_Ward)
+rect.hclust(Cereal_Ward, k = 5, border = 1:5) # I would choose 5 clusters.
+abline(h = 5, col = 'red')
+```
+
+# Step 3: Cluster Stability and Healthy Cereals
+# Create cluster partitions A and B
+```{r}
+set.seed(123)
+partition_A <- sample(1:2, nrow(normalized_cereals), replace = TRUE)
+partition_B <- 3 - partition_A
+```
+
+# Fit cluster on partition A
+```{r}
+cluster_A <- cutree(Cereal_Ward, k = 5)  # Assuming 4 clusters, adjust as needed
+```
+
+# Calculate centroids of clusters in partition A
+```{r}
+library(dplyr)
+```
+
+# Combine partition_A, cluster_A, and normalized_cereals for easier processing
+```{r}
+combined_data <- cbind(partition = partition_A, cluster = cluster_A)
+combined_data_df <- as.data.frame(combined_data)
+```
+
+# Calculate centroids of clusters in partition A
+```{r}
+cluster_A_centroids <- combined_data_df %>%
+  group_by(cluster) %>%
+  summarise_all(mean) %>%
+  select(-partition)
+```
+
+# Calculate distances between partition B records and centroids from partition A
+```{r}
+distances_to_centroids <- apply(normalized_cereals[partition_B, ], 1, function(record) {
+  apply(cluster_A_centroids, 1, function(centroid) {
+    sqrt(sum((record - centroid)^2))
+  })
+})
+```
+
+# Assign clusters to partition B based on minimum distances
+```{r}
+cluster_B <- apply(distances_to_centroids, 2, which.min)
+```
+
+
+# Assess cluster consistency
+```{r}
+consistency <- sum(cluster_A == cluster_B) / length(cluster_B)
+```
+
+# Identify healthy cereals cluster
+# Let's assume 'healthy' cereals have low sugar and high fiber
+```{r}
+healthy_cereals_cluster <- cluster_A[which(cereals_data$sugars < 5 & cereals_data$fiber > 5)]
+```
+
+# Print the results
+```{r}
+cat("Cluster Consistency:", consistency, "\n")
+cat("Healthy Cereals Cluster:", healthy_cereals_cluster, "\n")
+```
+
+
+
+
+
+
+
+
+
+
